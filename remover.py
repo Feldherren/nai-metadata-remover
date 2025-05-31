@@ -2,7 +2,6 @@ import argparse
 import sys
 from pathlib import Path
 from PIL import Image
-import os
 import numpy as np
 import io
 
