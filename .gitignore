@@ -1,2 +1,5 @@
 /venv
 *.png
+build
+dist
+/remover.spec
