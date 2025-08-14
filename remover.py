@@ -6,14 +6,11 @@ from PIL import Image
 import numpy as np
 import io
 
-# TODO:
-# optionally take a switch that makes it save files in place, without metadata?
-# maybe have an external config file for the default behaviour - keeping/removing name, keeping/removing metadata, saving a copy/saving over the original?
-
 def get_config():
     config = configparser.ConfigParser()
     config_path = Path('config.ini')
     if not config_path.exists():
+        # Create default config file with safe options
         config['DEFAULT'] = {'export_path': 'scrubbed',
                              'display_metadata': 'false', 
                              'change_filename': 'true', 
