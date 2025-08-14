@@ -1,4 +1,5 @@
 import argparse
+import configparser
 import sys
 from pathlib import Path
 from PIL import Image
@@ -8,7 +9,20 @@ import io
 # TODO:
 # optionally take a switch that makes it save files in place, without metadata?
 # maybe have an external config file for the default behaviour - keeping/removing name, keeping/removing metadata, saving a copy/saving over the original?
-# maybe
+
+def get_config():
+    config = configparser.ConfigParser()
+    config_path = Path('config.ini')
+    if not config_path.exists():
+        config['DEFAULT'] = {'export_path': 'scrubbed',
+                             'display_metadata': 'false', 
+                             'change_filename': 'true', 
+                             'remove_metadata': 'true', 
+                             'prevent_overwrite': 'true'}
+        with open(config_path, 'w') as configfile:
+            config.write(configfile)
+    config.read('config.ini')
+    return config
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Process PNG files.')
@@ -54,15 +68,25 @@ def display_metadata(image_path):
     except Exception as e:
         print(f"Error reading metadata for {image_path}: {str(e)}", file=sys.stderr)
 
-def remove_metadata(image_path, index):
+def remove_metadata(image_path, index, config):
     try:
         # Create scrubbed directory if it doesn't exist
-        scrubbed_dir = Path("scrubbed")
+        scrubbed_dir = Path(config['DEFAULT']['export_path'])
         scrubbed_dir.mkdir(exist_ok=True)
         
-        # Create new filename with sequential number
-        new_filename = f"Image{index}.png"
-        new_path = scrubbed_dir / new_filename
+        if config['DEFAULT']['change_filename'] == 'true':
+            # Create new filename with sequential number
+            filename = f"Image{index}.png"
+        else:
+            # Use the original filename
+            filename = image_path.name
+
+        new_path = scrubbed_dir / filename
+
+        if config['DEFAULT']['prevent_overwrite'] == 'true':
+            if new_path.exists():
+                print(f"Warning: {new_path} already exists, skipping")
+                return
         
         # Open the image and convert to RGBA
         with Image.open(image_path) as img:
@@ -103,8 +127,14 @@ def remove_metadata(image_path, index):
 # Software, Source, Generation_time, Comment, Title, Description
 
 if __name__ == '__main__':
+    config = get_config()
+    export_path = config['DEFAULT']['export_path']
+    print(f"Exporting to {export_path}")
+
     png_files = parse_args()
     print(f"Processing {len(png_files)} PNG files:")
     for index, file in enumerate(png_files, start=1):
-        display_metadata(file)
-        remove_metadata(file, index)
+        if config['DEFAULT']['display_metadata'] == 'true':
+            display_metadata(file)
+        if config['DEFAULT']['remove_metadata'] == 'true':
+            remove_metadata(file, index, config)
